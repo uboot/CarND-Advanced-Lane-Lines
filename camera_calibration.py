@@ -44,12 +44,12 @@ undist = cv2.undistort(img, mtx, dist, None, mtx)
 plot_images(img, undist)
 
 img = mpimg.imread('test_images/straight_lines1.jpg')
-undist = cv2.undistort(img, mtx, dist, None, mtx)
+undist = cv2.undistort(img, mtx, dist)
 plot_images(img, undist)
 mpimg.imsave('undistorted.jpg', undist)
 
 img = undist
-src = np.float32([[200,720],[560,450],[700,450],[1150,720]])
+src = np.float32([[190,720],[580,460],[705,460],[1115,720]])
 dst = np.float32([[280,720],[280,0],[1000,0],[1000,720]])
 M = cv2.getPerspectiveTransform(src, dst)
 
