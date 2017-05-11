@@ -52,11 +52,13 @@ img = undist
 src = np.float32([[190,720],[580,460],[705,460],[1115,720]])
 dst = np.float32([[280,720],[280,0],[1000,0],[1000,720]])
 M = cv2.getPerspectiveTransform(src, dst)
+Minv = cv2.getPerspectiveTransform(dst, src)
 
 calib = {
     'mtx': mtx,
     'dist': dist,
-    'M': M
+    'M': M,
+    'Minv': Minv
 }
 pickle.dump(calib, open('calib.p', 'wb'))
 
