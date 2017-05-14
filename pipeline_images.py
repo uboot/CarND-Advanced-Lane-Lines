@@ -19,6 +19,7 @@ for fname in glob.glob('test_images/*.jpg'):
     image = mpimg.imread(fname)
     undistorted = ld.undistort(image, mtx, dist)
     features = ld.combined_thresh(undistorted)
+    features = ld.morph_filter(features)
     warped = ld.warp(features, M)
     
     left_fit, right_fit, image = ld.find_lanes(warped)

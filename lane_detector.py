@@ -12,9 +12,10 @@ xm_per_pix = 3.7/700 # meters per pixel in x dimension
 def undistort(img, mtx, dist):
     return cv2.undistort(img, mtx, dist)
 
-def combined_thresh(img, orient='x'):
+def combined_thresh(img, plot=False):
     # Convert to HLS color space and separate the S channel
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    l_channel = hls[:,:,1]
     s_channel = hls[:,:,2]
     
     # Grayscale image
@@ -39,15 +40,38 @@ def combined_thresh(img, orient='x'):
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
     
+    l_thresh_min = 20
+    l_thresh_max = 255
+    l_binary = np.zeros_like(l_channel)
+    l_binary[(l_channel >= l_thresh_min) & (l_channel <= l_thresh_max)] = 1
+    
     # Stack each channel to view their individual contributions in green and blue respectively
     # This returns a stack of the two binary images, whose components you can see as different colors
-    color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary))
+    color_binary = 255*np.dstack((l_binary, sxbinary, s_binary))    
     
     # Combine the two binary thresholds
     combined_binary = np.zeros_like(sxbinary)
-    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    combined_binary[((s_binary == 1) & (l_binary == 1)) | (sxbinary == 1)] = 1
+    
+    if plot:
+        plt.imshow(color_binary)
+        plt.show()    
     
     return combined_binary
+
+def morph_filter(img, plot=False):
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    filtered = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+    if plot:
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+        f.tight_layout()
+        ax1.imshow(img, cmap='gray')
+        ax2.imshow(filtered, cmap='gray')
+        plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+        plt.imshow(filtered)
+        plt.show()  
+        
+    return filtered
 
 def warp(img, M):
     return cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)

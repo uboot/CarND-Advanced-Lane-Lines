@@ -49,7 +49,7 @@ plot_images(img, undist)
 mpimg.imsave('undistorted.jpg', undist)
 
 img = undist
-src = np.float32([[190,720],[580,460],[705,460],[1115,720]])
+src = np.float32([[235,690],[580,460],[705,460],[1070,690]])
 dst = np.float32([[280,720],[280,0],[1000,0],[1000,720]])
 M = cv2.getPerspectiveTransform(src, dst)
 Minv = cv2.getPerspectiveTransform(dst, src)
