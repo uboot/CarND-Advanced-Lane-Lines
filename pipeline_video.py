@@ -26,33 +26,23 @@ def process_image(image):
     features = ld.combined_thresh(undistorted)
     warped = ld.warp(features, M)
     
-    if counter == 0:
-        left_fit, right_fit, image = ld.find_lanes(warped)
-        left_fits = [left_fit]
-        right_fits = [right_fit]
+    if counter%30 == 0:
+        left_fit, right_fit, image = ld.find_lanes(warped, left_fits, right_fits)
     else:
-        left_fit_mean = np.mean(np.array(left_fits), axis=0)
-        right_fit_mean = np.mean(np.array(right_fits), axis=0)
-        left_fit, right_fit, image = ld.update_lanes(warped, left_fit_mean, right_fit_mean)
-        left_fits.append(left_fit)
-        right_fits.append(right_fit)
-        if len(left_fits) > 5:
-            left_fits.pop(0)
-            right_fits.pop(0)
+        left_fit, right_fit, image = ld.update_lanes(warped, left_fits, right_fits)
         
-    unwarped = ld.warp(image, Minv)
+    if len(left_fits) > 10:
+        left_fits.pop(0)
+        right_fits.pop(0)
+        
     
-    result = cv2.addWeighted(undistorted, 1.0, unwarped, 0.3, 0)
+    unwarped = ld.warp(image, Minv)
+    result = ld.compute_overlay(undistorted, unwarped)
     
     curvature = ld.compute_curvature(left_fit, right_fit, image.shape[0])
     offset = ld.compute_offset(left_fit, right_fit, image.shape)
     
-    curvature_string = 'curvature = {0:.0f} m'.format(curvature)
-    offset_string = 'offset = {0:1.2f} m'.format(offset)
-    cv2.putText(result, curvature_string, (50, 80), cv2.FONT_HERSHEY_PLAIN, 4,
-                (255, 0, 255), thickness=3)
-    cv2.putText(result, offset_string, (50, 140), cv2.FONT_HERSHEY_PLAIN, 4,
-                (255, 0, 255), thickness=3)
+    ld.print_data(result, curvature, offset)
     
     counter += 1
     return result

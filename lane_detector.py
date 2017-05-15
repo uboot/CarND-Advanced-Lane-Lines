@@ -76,7 +76,7 @@ def morph_filter(img, plot=False):
 def warp(img, M):
     return cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
  
-def find_lanes(binary_warped, plot=False):
+def find_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
     bottom_half_height = np.int(binary_warped.shape[0]/2)
@@ -143,8 +143,10 @@ def find_lanes(binary_warped, plot=False):
     righty = nonzeroy[right_lane_inds] 
     
     # Fit a second order polynomial to each
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
+    left_fits.append(np.polyfit(lefty, leftx, 2))
+    right_fits.append(np.polyfit(righty, rightx, 2))
+    left_fit = np.mean(np.array(left_fits), axis=0)
+    right_fit = np.mean(np.array(right_fits), axis=0)
     
     ##### PLOT THE FIT
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
@@ -171,7 +173,7 @@ def find_lanes(binary_warped, plot=False):
     
     return left_fit, right_fit, out_img
 
-def update_lanes(binary_warped, left_fit, right_fit, plot=False):
+def update_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     # Assume you now have a new warped binary image 
     # from the next frame of video (also called "binary_warped")
     # It's now much easier to find line pixels!
@@ -179,6 +181,8 @@ def update_lanes(binary_warped, left_fit, right_fit, plot=False):
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
     margin = 100
+    left_fit = np.mean(np.array(left_fits), axis=0)
+    right_fit = np.mean(np.array(right_fits), axis=0)
     left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin))) 
     right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))  
     
@@ -189,8 +193,10 @@ def update_lanes(binary_warped, left_fit, right_fit, plot=False):
     righty = nonzeroy[right_lane_inds]
     
     # Fit a second order polynomial to each
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
+    left_fits.append(np.polyfit(lefty, leftx, 2))
+    right_fits.append(np.polyfit(righty, rightx, 2))
+    left_fit = np.mean(np.array(left_fits), axis=0)
+    right_fit = np.mean(np.array(right_fits), axis=0)
     
     # Generate x and y values for plotting
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
@@ -267,4 +273,16 @@ def compute_offset(left_fit, right_fit, image_shape, verbose = False):
         print(offset, 'm')
     
     return offset
+
+def print_data(image, curvature, offset): 
+    curvature_string = 'curvature = {0:.0f} m'.format(curvature)
+    offset_string = 'offset = {0:1.2f} m'.format(offset)
+    cv2.putText(image, curvature_string, (50, 80), cv2.FONT_HERSHEY_PLAIN, 4,
+                (255, 0, 255), thickness=3)
+    cv2.putText(image, offset_string, (50, 140), cv2.FONT_HERSHEY_PLAIN, 4,
+                (255, 0, 255), thickness=3)
+
+def compute_overlay(background, overlay):
+    
+    return cv2.addWeighted(background, 1.0, overlay, -0.3, 0)
     
