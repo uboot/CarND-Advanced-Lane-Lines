@@ -283,6 +283,8 @@ def print_data(image, curvature, offset):
                 (255, 0, 255), thickness=3)
 
 def compute_overlay(background, overlay):
-    
-    return cv2.addWeighted(background, 1.0, overlay, -0.3, 0)
+    inverse = 255 - overlay
+    white = np.logical_and.reduce(inverse[:,:,:]==[255,255,255], axis=2)
+    inverse[white] = [0, 0, 0]
+    return cv2.addWeighted(background, 1.0, inverse, -0.3, 0)
     

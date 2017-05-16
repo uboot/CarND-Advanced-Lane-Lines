@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import cv2
 import glob
 import pickle
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import numpy as np
 
 import lane_detector as ld
 
