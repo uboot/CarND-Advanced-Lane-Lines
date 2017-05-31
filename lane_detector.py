@@ -13,53 +13,53 @@ def undistort(img, mtx, dist):
     return cv2.undistort(img, mtx, dist)
 
 def combined_thresh(img, plot=False):
-    # Convert to HLS color space and separate the S channel
-    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-    l_channel = hls[:,:,1]
-    s_channel = hls[:,:,2]
-    
-    # Grayscale image
-    # NOTE: we already saw that standard grayscaling lost color information for the lane lines
-    # Explore gradients in other colors spaces / color channels to see what might work better
+    # convert the image to gray
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     
-    # Sobel x
-    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0) # Take the derivative in x
-    abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
+    # compute the absolute derivative in x of the gray scale image scale it to [0, 255]
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0)
+    abs_sobelx = np.absolute(sobelx)
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
     
-    # Threshold x gradient
+    # threshold the x gradient
     thresh_min = 20
     thresh_max = 100
     sxbinary = np.zeros_like(scaled_sobel)
     sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
     
-    # Threshold color channel
+    # convert to HLS color space and extract the L and S channels
+    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    l_channel = hls[:,:,1]
+    s_channel = hls[:,:,2]
+    
+    # threshold the S channel
     s_thresh_min = 170
     s_thresh_max = 255
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
     
+    # threshold the L channel
     l_thresh_min = 20
     l_thresh_max = 255
     l_binary = np.zeros_like(l_channel)
     l_binary[(l_channel >= l_thresh_min) & (l_channel <= l_thresh_max)] = 1
     
-    # Stack each channel to view their individual contributions in green and blue respectively
-    # This returns a stack of the two binary images, whose components you can see as different colors
-    color_binary = 255*np.dstack((l_binary, sxbinary, s_binary))    
-    
-    # Combine the two binary thresholds
+    # Combine the three binary thresholds. We activate the image regions with
+    # responses in both the S and L channels and all regions with the correct
+    # x gradient
     combined_binary = np.zeros_like(sxbinary)
     combined_binary[((s_binary == 1) & (l_binary == 1)) | (sxbinary == 1)] = 1
     
     if plot:
+        # stack the thresholded channels (gradient, S and L) for visualization
+        color_binary = 255*np.dstack((l_binary, sxbinary, s_binary)) 
         plt.imshow(color_binary)
         plt.show()    
     
     return combined_binary
 
 def morph_filter(img, plot=False):
+    # remove small structures from the binary input image
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     filtered = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
     if plot:
@@ -76,7 +76,11 @@ def morph_filter(img, plot=False):
 def warp(img, M):
     return cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
  
-def find_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
+def find_lanes(binary_warped, plot=False):
+    """
+    
+    """
+    
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
     bottom_half_height = np.int(binary_warped.shape[0]/2)
@@ -143,33 +147,32 @@ def find_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     righty = nonzeroy[right_lane_inds] 
     
     # Fit a second order polynomial to each
-    left_fits.append(np.polyfit(lefty, leftx, 2))
-    right_fits.append(np.polyfit(righty, rightx, 2))
-    left_fit = np.mean(np.array(left_fits), axis=0)
-    right_fit = np.mean(np.array(right_fits), axis=0)
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
     
-    ##### PLOT THE FIT
+    # Compute a dense discretization of the left and right lane line
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
     
-    # Draw the lane onto the warped blank image
+    # Draw the green lane onto the warped blank image
     left_line = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
     right_line = np.array([np.transpose(np.vstack([right_fitx[::-1], ploty[::-1]]))])
     lane_pts = np.hstack((left_line, right_line))
     cv2.fillPoly(out_img, np.int_([lane_pts]), (0,255, 0))
     
+    # Draw the left and right lane regions as red and blue
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
     
     if plot:
+        # Optionally, plot the lane line fit as yellow lines
         plt.imshow(out_img)
         plt.plot(left_fitx, ploty, color='yellow')
         plt.plot(right_fitx, ploty, color='yellow')
         plt.xlim(0, 1280)
         plt.ylim(720, 0)
         plt.show()
-    ##### PLOT THE FIT
     
     return left_fit, right_fit, out_img
 
@@ -198,12 +201,11 @@ def update_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     left_fit = np.mean(np.array(left_fits), axis=0)
     right_fit = np.mean(np.array(right_fits), axis=0)
     
-    # Generate x and y values for plotting
+    # Compute a dense discretization of the left and right lane line
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
     
-    ##### PLOT THE FIT
     # Create an image to draw on and an image to show the selection window
     out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
     window_img = np.zeros_like(out_img)
@@ -213,6 +215,7 @@ def update_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     right_line = np.array([np.transpose(np.vstack([right_fitx[::-1], ploty[::-1]]))])
     lane_pts = np.hstack((left_line, right_line))
     cv2.fillPoly(out_img, np.int_([lane_pts]), (0,255, 0))
+    
     # Color in left and right line pixels
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
@@ -231,13 +234,13 @@ def update_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
     cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
     result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
     if plot:
+        # Optionally, plot the lane line fit as yellow lines
         plt.imshow(result)
         plt.plot(left_fitx, ploty, color='yellow')
         plt.plot(right_fitx, ploty, color='yellow')
         plt.xlim(0, 1280)
         plt.ylim(720, 0)
         plt.show()
-    ##### PLOT THE FIT
     
     return left_fit, right_fit, out_img
 

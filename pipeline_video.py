@@ -24,8 +24,10 @@ def process_image(image):
     features = ld.combined_thresh(undistorted)
     warped = ld.warp(features, M)
     
-    if counter%30 == 0:
-        left_fit, right_fit, image = ld.find_lanes(warped, left_fits, right_fits)
+    if len(left_fits) == 0:
+        left_fit, right_fit, image = ld.find_lanes(warped)
+        left_fits.append(left_fit)
+        right_fits.append(right_fit)
     else:
         left_fit, right_fit, image = ld.update_lanes(warped, left_fits, right_fits)
         
