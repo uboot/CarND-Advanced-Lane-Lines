@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import glob
+import os
 import pickle
 import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
 
 import lane_detector as ld
 
@@ -31,7 +31,7 @@ for fname in glob.glob('test_images/*.jpg'):
     offset = ld.compute_offset(left_fit, right_fit, image.shape)
     ld.print_data(result, curvature, offset)
     
-    plt.imshow(result)
-    plt.show()
+    out_fname = 'output_images/{0}'.format(os.path.basename(fname))
+    mpimg.imsave(out_fname, result)
 
     
