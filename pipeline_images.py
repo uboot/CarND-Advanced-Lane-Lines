@@ -23,12 +23,11 @@ for fname in glob.glob('test_images/*.jpg'):
     
     left_fit, right_fit, image = ld.find_lanes(warped)
     
-    left_fit, right_fit, image = ld.update_lanes(warped, [left_fit], [right_fit])
-    unwarped = ld.warp(image, Minv)
-    result = ld.compute_overlay(undistorted, unwarped)
-    
     curvature = ld.compute_curvature(left_fit, right_fit, image.shape[0])
     offset = ld.compute_offset(left_fit, right_fit, image.shape)
+    unwarped = ld.warp(image, Minv)
+    
+    result = ld.compute_overlay(undistorted, unwarped)
     ld.print_data(result, curvature, offset)
     
     out_fname = 'output_images/{0}'.format(os.path.basename(fname))

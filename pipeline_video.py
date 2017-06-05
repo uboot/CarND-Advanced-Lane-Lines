@@ -34,14 +34,12 @@ def process_image(image):
     if len(left_fits) > 10:
         left_fits.pop(0)
         right_fits.pop(0)
-        
-    
-    unwarped = ld.warp(image, Minv)
-    result = ld.compute_overlay(undistorted, unwarped)
     
     curvature = ld.compute_curvature(left_fit, right_fit, image.shape[0])
     offset = ld.compute_offset(left_fit, right_fit, image.shape)
     
+    unwarped = ld.warp(image, Minv)
+    result = ld.compute_overlay(undistorted, unwarped)
     ld.print_data(result, curvature, offset)
     
     counter += 1

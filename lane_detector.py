@@ -55,6 +55,8 @@ def combined_thresh(img, plot=False):
         color_binary = 255*np.dstack((l_binary, sxbinary, s_binary)) 
         plt.imshow(color_binary)
         plt.show()    
+        plt.imshow(combined_binary, cmap='gray')
+        plt.show()    
     
     return combined_binary
 
@@ -68,7 +70,6 @@ def morph_filter(img, plot=False):
         ax1.imshow(img, cmap='gray')
         ax2.imshow(filtered, cmap='gray')
         plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-        plt.imshow(filtered)
         plt.show()  
         
     return filtered
@@ -78,7 +79,10 @@ def warp(img, M):
  
 def find_lanes(binary_warped, plot=False):
     """
-    
+    Find lane lines in a warped binary image. Returns the coefficients of
+    polynomial fitting the left and right lane lines together with a color image.
+    The image contains visualizations of the left (red) and right (blue) lane 
+    lines and the lane region (green).
     """
     
     # Assuming you have created a warped binary image called "binary_warped"
@@ -121,9 +125,7 @@ def find_lanes(binary_warped, plot=False):
         win_xleft_high = leftx_current + margin
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
-        # Draw the windows on the visualization image
-        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
-        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
+        
         # Identify the nonzero pixels in x and y within the window
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
         good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
@@ -177,9 +179,16 @@ def find_lanes(binary_warped, plot=False):
     return left_fit, right_fit, out_img
 
 def update_lanes(binary_warped, left_fits=[], right_fits=[], plot=False):
-    # Assume you now have a new warped binary image 
-    # from the next frame of video (also called "binary_warped")
-    # It's now much easier to find line pixels!
+    """
+    Find lane lines in a warped binary image considering the results of 
+    previous fits. This functions limits the search for lane lines to the region
+    around the means of the input lines left_fits and right_fits.
+    
+    Returns the coefficients of polynomial fitting the left and right lane lines 
+    together with a color image. The image contains visualizations of the left
+    (red) and right (blue) lane lines and the lane region (green).
+    """
+    
     nonzero = binary_warped.nonzero()
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])

@@ -53,7 +53,6 @@ plot_images(img, undist)
 img = mpimg.imread('test_images/straight_lines1.jpg')
 undist = cv2.undistort(img, mtx, dist)
 plot_images(img, undist)
-mpimg.imsave('undistorted.jpg', undist)
 
 img = undist
 
