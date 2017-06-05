@@ -1,9 +1,3 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
@@ -116,4 +110,8 @@ Here's a [link to my video result](./output.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+The computation and selection of binary features is the most sensitive part the my project code. The features turned out to be more stable after I added a morphological filtering step which removed small positive regions from the binary image. With this approach I was able to successfully detect the lane in all test images. This is however not the case for test images I took from the challenge videos. For these data the feature selection has to be improved further. I would suggest tuning the parameters of the feature selection systematically using labeled feature data and an automatic approach.
+
+The video pipeline greatly benefits from averaging lane lines detected in previous frames. I use the function `update_lanes()` which considers previous detection results for all frames except the very first one. This could be problematic if the result "drifts" away from the correct solution. Because `update_lanes()` searches only in a limited region it can not correctly detect the lane lines if it is initialized with a wrong solution.
+To overcome this issue I would add a complete search with the function `find_lanes()` every second or so.
+
