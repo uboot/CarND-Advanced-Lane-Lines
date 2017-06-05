@@ -25,8 +25,8 @@ for fname in glob.glob('test_images/*.jpg'):
     
     curvature = ld.compute_curvature(left_fit, right_fit, image.shape[0])
     offset = ld.compute_offset(left_fit, right_fit, image.shape)
-    unwarped = ld.warp(image, Minv)
     
+    unwarped = ld.warp(image, Minv)
     result = ld.compute_overlay(undistorted, unwarped)
     ld.print_data(result, curvature, offset)
     
